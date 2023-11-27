@@ -1,0 +1,13 @@
+updateFrequency: 5m
+projects:
+  - type: custom
+    repository: git@github.com:paullaffitte/gravity.git
+    branch: master
+    options:
+      script: ls && cat README.md | head -n 1
+  - name: gravity-bis
+    type: custom
+    repository: git@github.com:paullaffitte/gravity.git
+    branch: master
+    options:
+      script: ls
