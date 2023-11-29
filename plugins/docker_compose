@@ -5,6 +5,8 @@ from utils import run
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--env-file', help='.env to use')
+parser.add_argument('--build', default=True, help='Build containers before starting the stack')
+parser.add_argument('--remove-orphans', default=True, help='Remove orphaned containers')
 args = parser.parse_args()
 
 command = 'docker compose'
@@ -12,6 +14,12 @@ command = 'docker compose'
 if args.env_file:
   command += f' --env-file {args.env_file}'
 
-command += ' up -d --build --remove-orphans'
+command += ' up -d'
+
+if not args.build:
+  command += f' --build'
+
+if args.remove_orphans:
+  command += f' --remove-orphans'
 
 run(command.split(' '))
