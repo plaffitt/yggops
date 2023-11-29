@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"gopkg.in/yaml.v2"
 )
@@ -116,15 +117,61 @@ func (p *Project) Init() error {
 func (p *Project) UpdateSources() error {
 	fmt.Printf("Updating %s (%s)...\n", p.Name, p.Repository)
 
-	err := p.worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+	currentHead, err := p.repository.Head()
 	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			return nil
-		}
 		return err
 	}
 
-	fmt.Printf("Successfully updated %s sources!\n", p.Name)
+	// Fetch updates from remote
+	err = p.repository.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		Force:      true,
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", p.Branch, p.Branch)),
+		},
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+
+	remoteRef, err := p.repository.Reference(plumbing.NewRemoteReferenceName("origin", p.Branch), true)
+	if err != nil {
+		return err
+	}
+
+	branchRefName := plumbing.NewBranchReferenceName(p.Branch)
+	branchRef := plumbing.NewHashReference(branchRefName, remoteRef.Hash())
+
+	err = p.repository.Storer.SetReference(branchRef)
+	if err != nil {
+		return err
+	}
+
+	// Checkout branch
+	err = p.worktree.Checkout(&git.CheckoutOptions{
+		Branch: branchRefName,
+		Force:  true,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Update submodules
+	sbs, err := p.worktree.Submodules()
+	if err != nil {
+		return err
+	}
+
+	err = sbs.Update(&git.SubmoduleUpdateOptions{
+		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+	})
+	if err != nil {
+		return err
+	}
+
+	if currentHead.Hash() != remoteRef.Hash() {
+		fmt.Printf("Successfully updated %s sources!\n", p.Name)
+	}
 
 	return nil
 }
@@ -204,7 +251,7 @@ func (p *Project) clone() error {
 		URL:               p.Repository,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		SingleBranch:      true,
-		ReferenceName:     plumbing.ReferenceName(p.Branch),
+		ReferenceName:     plumbing.NewBranchReferenceName(p.Branch),
 	})
 
 	if err != nil {
