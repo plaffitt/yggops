@@ -23,9 +23,9 @@ type Project struct {
 	Options          map[string]string `yaml:"options"`
 	RepositoriesPath *string
 
-	repository *git.Repository
-	worktree   *git.Worktree
-	headHash   plumbing.Hash
+	repository       *git.Repository
+	worktree         *git.Worktree
+	lastAppliedPatch plumbing.Hash
 }
 
 type Config struct {
@@ -74,82 +74,128 @@ func main() {
 		fmt.Println("=========================")
 	}
 
-	fmt.Println("")
+	fmt.Println()
 
 	for true {
 		for _, project := range config.Projects {
-			updated, err := project.Update()
+			project.Init()
+			err := project.UpdateSources()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("could not update %s sources: %s\n", project.Name, err)
+				continue
 			}
 
-			// TODO check that plugin project.Type exists
-
-			if updated {
-				args := []string{}
-				for name, option := range project.Options {
-					args = append(args, "--"+name)
-					args = append(args, option)
-				}
-
-				pluginPath, err := filepath.Abs(*pluginsPath + "/" + project.Type)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				cmd := exec.Command(pluginPath, args...)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Dir = project.RepositoryPath()
-
-				err = cmd.Run()
-				if err != nil {
-					log.Fatal(err)
-				}
+			err = project.ApplyPatch(*pluginsPath)
+			if err != nil {
+				fmt.Printf("could not apply patch to %s: %s\n", project.Name, err)
 			}
+
 			fmt.Println("=========================")
 		}
 		time.Sleep(config.UpdateFrequency)
 	}
 }
 
-func (p *Project) Update() (bool, error) {
-	err := p.openWorktree()
-	if err == git.ErrRepositoryNotExists {
+func (p *Project) Init() error {
+	if err := p.openWorktree(); err == git.ErrRepositoryNotExists {
 		if err = p.clone(); err != nil {
-			return false, err
+			return err
 		}
 		if err = p.openWorktree(); err != nil {
-			return false, err
+			return err
 		}
-		return p.updateHeadHash()
 	}
 
-	if err != nil {
-		return false, err
+	if err := p.loadLastAppliedPatch(); err != nil {
+		return err
 	}
 
-	fmt.Printf("Updating %s (%s)...\n", p.Name, p.Repository)
-	err = p.worktree.Pull(&git.PullOptions{RemoteName: "origin"})
-	if err != nil {
-		return false, err
-	}
-
-	fmt.Printf("%s updated successfully!\n", p.Name)
-
-	return p.updateHeadHash()
+	return nil
 }
 
-func (p *Project) updateHeadHash() (bool, error) {
-	var err error
-	previousHash := p.headHash
+func (p *Project) UpdateSources() error {
+	fmt.Printf("Updating %s (%s)...\n", p.Name, p.Repository)
 
-	p.headHash, err = p.getHeadHash()
+	err := p.worktree.Pull(&git.PullOptions{RemoteName: "origin"})
 	if err != nil {
-		return false, err
+		if err == git.NoErrAlreadyUpToDate {
+			return nil
+		}
+		return err
 	}
 
-	return previousHash != p.headHash, nil
+	fmt.Printf("Successfully updated %s sources!\n", p.Name)
+
+	return nil
+}
+
+func (p *Project) ApplyPatch(pluginsPath string) error {
+	headHash, err := p.getHeadHash()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if headHash == p.lastAppliedPatch {
+		fmt.Printf("Project %s is up to date (%s)\n", p.Name, headHash)
+		return nil
+	}
+
+	fmt.Printf("Applying %s patch %s...\n", p.Name, headHash)
+	args := []string{}
+	for name, option := range p.Options {
+		args = append(args, "--"+name)
+		args = append(args, option)
+	}
+
+	pluginPath, err := filepath.Abs(pluginsPath + "/" + p.Type)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(pluginPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = p.RepositoryPath()
+
+	if err = cmd.Run(); err != nil {
+		return err
+	}
+
+	if err = p.updateLastAppliedPatch(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully applied %s patch %s!\n", p.Name, headHash)
+
+	return nil
+}
+
+func (p *Project) updateLastAppliedPatch() (err error) {
+	p.lastAppliedPatch, err = p.getHeadHash()
+	if err != nil {
+		return
+	}
+
+	err = os.WriteFile(p.RepositoryLastAppliedPatchPath(), []byte(p.lastAppliedPatch.String()), 0644)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (p *Project) loadLastAppliedPatch() error {
+	lastAppliedPatch, err := os.ReadFile(p.RepositoryLastAppliedPatchPath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	p.lastAppliedPatch = plumbing.NewHash(string(lastAppliedPatch))
+
+	return nil
 }
 
 func (p *Project) clone() error {
@@ -164,7 +210,7 @@ func (p *Project) clone() error {
 	if err != nil {
 		return fmt.Errorf("could not clone %s: %s", p.Repository, err)
 	} else {
-		fmt.Printf("%s cloned successfully!\n", p.Repository)
+		fmt.Printf("Successfully cloned %s!\n", p.Repository)
 	}
 
 	return nil
@@ -195,4 +241,8 @@ func (p *Project) getHeadHash() (plumbing.Hash, error) {
 
 func (p *Project) RepositoryPath() string {
 	return *p.RepositoriesPath + "/" + p.Name
+}
+
+func (p *Project) RepositoryLastAppliedPatchPath() string {
+	return *p.RepositoriesPath + "/" + p.Name + ".last_applied_patch"
 }
