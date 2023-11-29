@@ -12,4 +12,4 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config.yaml:/etc/generic-gitops/config.yaml
       - ./configs:/etc/generic-gitops/configs
-      - ./repositories:/var/lib/generic-gitops/repositories
+      - /var/lib/generic-gitops/repositories:/var/lib/generic-gitops/repositories
