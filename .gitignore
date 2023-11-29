@@ -20,6 +20,9 @@
 # Go workspace file
 go.work
 
+# Python cache
+__pycache__
+
 config.yaml
 configs
 !configs/.gitkeep

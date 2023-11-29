@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import os
 import argparse
+from utils import run
 
 parser = argparse.ArgumentParser(description='Execute an arbitrary script')
 
@@ -9,5 +9,4 @@ parser.add_argument('--script', help='Script to run', required=True)
 
 args = parser.parse_args()
 
-print('>', args.script, flush=True)
-os.system(args.script)
+run(['sh', '-c', args.script])

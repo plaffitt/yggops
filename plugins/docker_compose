@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 
-import os
 import argparse
+from utils import run
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument('--env-file', help='.env')
-
 args = parser.parse_args()
 
 if args.env_file:
-  command = f'ln -sf {args.env_file} .env'
-  print('>', command, flush=True)
-  os.system(command)
+  run(['ln', '-sf', args.env_file, '.env'])
 
-command = 'docker compose up -d --build --remove-orphans'
-print('>', command, flush=True)
-os.system(command)
+run('docker compose up -d --build --remove-orphans'.split(' '))
