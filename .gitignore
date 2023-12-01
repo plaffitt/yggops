@@ -23,7 +23,8 @@ go.work
 # Python cache
 __pycache__
 
-config.yaml
+generic-gitops
+/config.yaml
 configs
 !configs/.gitkeep
 repositories
