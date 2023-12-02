@@ -93,8 +93,13 @@ func main() {
 
 	for true {
 		for _, project := range config.Projects {
-			project.Init()
-			err := project.UpdateSources()
+			err := project.Load()
+			if err != nil {
+				fmt.Printf("could not load %s: %s\n", project.Name, err)
+				continue
+			}
+
+			err = project.UpdateSources()
 			if err != nil {
 				fmt.Printf("could not update %s sources: %s\n", project.Name, err)
 				continue
@@ -111,7 +116,7 @@ func main() {
 	}
 }
 
-func (p *Project) Init() error {
+func (p *Project) Load() error {
 	if err := p.openWorktree(); err == git.ErrRepositoryNotExists {
 		if err = p.clone(); err != nil {
 			return err
