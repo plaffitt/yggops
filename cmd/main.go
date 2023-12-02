@@ -13,6 +13,8 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,6 +25,7 @@ type Project struct {
 	Branch           string            `yaml:"branch"`
 	Options          map[string]string `yaml:"options"`
 	RepositoriesPath *string
+	Auth             transport.AuthMethod
 
 	repository       *git.Repository
 	worktree         *git.Worktree
@@ -31,6 +34,7 @@ type Project struct {
 
 type Config struct {
 	UpdateFrequency time.Duration `yaml:"updateFrequency"`
+	PrivateKeyPath  string        `yaml:"privateKeyPath"`
 	Projects        []*Project    `yaml:"projects"`
 }
 
@@ -52,11 +56,21 @@ func main() {
 		log.Fatalf("error unmarshalling YAML: %v", err)
 	}
 
+	var auth transport.AuthMethod
+	if config.PrivateKeyPath != "" {
+		auth, err = ssh.NewPublicKeysFromFile("git", config.PrivateKeyPath, "")
+		if err != nil {
+			log.Fatalf("failed to create auth: %v", err)
+		}
+	}
+
 	fmt.Println("Update frequency:", config.UpdateFrequency)
+	fmt.Println("Private key path:", config.PrivateKeyPath)
 
 	fmt.Println("\nProjects:\n=========================")
 	for _, project := range config.Projects {
 		project.RepositoriesPath = repositoriesPath
+		project.Auth = auth
 		if project.Name == "" {
 			repositorySlice := strings.Split(project.Repository, "/")
 			project.Name = strings.Split(repositorySlice[len(repositorySlice)-1], ".")[0]
@@ -129,6 +143,7 @@ func (p *Project) UpdateSources() error {
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", p.Branch, p.Branch)),
 		},
+		Auth: p.Auth,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
@@ -252,6 +267,7 @@ func (p *Project) clone() error {
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		SingleBranch:      true,
 		ReferenceName:     plumbing.NewBranchReferenceName(p.Branch),
+		Auth:              p.Auth,
 	})
 
 	if err != nil {

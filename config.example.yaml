@@ -1,4 +1,5 @@
 updateFrequency: 5m
+privateKeyPath: /home/user/.ssh/id_rsa
 projects:
   - type: shell
     repository: git@github.com:paullaffitte/gravity.git
