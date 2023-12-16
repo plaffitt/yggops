@@ -16,7 +16,7 @@ if args.env_file:
 
 command += ' up -d'
 
-if not args.build:
+if args.build:
   command += f' --build'
 
 if args.remove_orphans:
