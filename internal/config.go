@@ -62,6 +62,7 @@ func (c *Config) loadProjectsConfig() error {
 
 	for _, project := range c.Projects {
 		project.RepositoriesPath = &c.RepositoriesPath
+		project.PluginsPath = &c.PluginsPath
 		project.Auth = auth
 		if project.Name == "" {
 			repositorySlice := strings.Split(project.Repository, "/")
@@ -69,6 +70,9 @@ func (c *Config) loadProjectsConfig() error {
 		}
 		if project.Branch == "" {
 			project.Branch = "main"
+		}
+		if project.UpdateFrequency == 0 {
+			project.UpdateFrequency = c.UpdateFrequency
 		}
 
 		// TODO check that plugin project.Type exists

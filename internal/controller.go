@@ -1,19 +1,24 @@
 package internal
 
 import (
+	"context"
 	"fmt"
-	"time"
+	"net/http"
 )
 
 type Controller struct {
 	config *Config
 }
 
+type Hook[T ~string] interface {
+	Parse(r *http.Request, events ...T) (interface{}, error)
+}
+
 func NewController(config *Config) *Controller {
 	return &Controller{config}
 }
 
-func (c *Controller) Start(pluginsPath string, repositoriesPath string) {
+func (c *Controller) Start() error {
 	fmt.Println("Update frequency:", c.config.UpdateFrequency)
 	fmt.Println("Private key path:", c.config.PrivateKeyPath)
 
@@ -23,33 +28,21 @@ func (c *Controller) Start(pluginsPath string, repositoriesPath string) {
 		fmt.Println("Type:", project.Type)
 		fmt.Println("Repository:", project.Repository)
 		fmt.Println("Branch:", project.Branch)
+		fmt.Println("UpdateFrequency:", project.UpdateFrequency)
+		fmt.Println("Webhook:", project.WebhookPath())
 		fmt.Println("Options:", project.Options)
 		fmt.Println("=========================")
 	}
 
 	fmt.Println()
 
-	for {
-		for _, project := range c.config.Projects {
-			err := project.Load()
-			if err != nil {
-				fmt.Printf("could not load %s: %s\n", project.Name, err)
-				continue
-			}
-
-			err = project.UpdateSources()
-			if err != nil {
-				fmt.Printf("could not update %s sources: %s\n", project.Name, err)
-				continue
-			}
-
-			err = project.ApplyPatch(pluginsPath)
-			if err != nil {
-				fmt.Printf("could not apply patch to %s: %s\n", project.Name, err)
-			}
-
-			fmt.Println("=========================")
+	ctx := context.Background()
+	for _, project := range c.config.Projects {
+		if err := project.RegisterWebhook(); err != nil {
+			return err
 		}
-		time.Sleep(c.config.UpdateFrequency)
+		go project.KeepUpdated(ctx)
 	}
+
+	return http.ListenAndServe(":3000", nil)
 }
