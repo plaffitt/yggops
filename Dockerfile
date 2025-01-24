@@ -5,6 +5,8 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download -x
 
-COPY cmd ./
+COPY cmd ./cmd
+COPY internal ./internal
+
 ARG BINARY_NAME
-RUN go build -o $BINARY_NAME
+RUN go build -o $BINARY_NAME -v ./cmd/main.go

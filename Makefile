@@ -31,10 +31,6 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 
-run:
-	$(GOBUILD) -o $(BINARY_NAME) -v ./...
-	./$(BINARY_NAME)
-
 install_plugins:
 	mkdir -p /var/lib/$(BINARY_NAME)
 	cp -r ./plugins /var/lib/$(BINARY_NAME)
