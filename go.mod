@@ -1,9 +1,10 @@
 module github.com/plaffitt/generic-gitops
 
-go 1.20
+go 1.23.6
 
 require (
 	github.com/go-git/go-git/v5 v5.10.0
+	github.com/go-playground/webhooks/v6 v6.4.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

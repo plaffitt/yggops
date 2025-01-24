@@ -1,15 +1,20 @@
 package internal
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	gtime "github.com/plaffitt/generic-gitops/internal/time"
 )
 
 type Project struct {
@@ -17,13 +22,18 @@ type Project struct {
 	Type             string            `yaml:"type"`
 	Repository       string            `yaml:"repository"`
 	Branch           string            `yaml:"branch"`
+	UpdateFrequency  time.Duration     `yaml:"updateFrequency"`
+	Webhook          *Webhook          `yaml:"webhook,omitempty"`
 	Options          map[string]string `yaml:"options"`
 	RepositoriesPath *string
+	PluginsPath      *string
 	Auth             transport.AuthMethod
 
 	repository       *git.Repository
 	worktree         *git.Worktree
 	lastAppliedPatch plumbing.Hash
+	updateMutex      sync.Mutex
+	ticker           *gtime.TriggerableTicker
 }
 
 func (p *Project) Load() error {
@@ -106,7 +116,7 @@ func (p *Project) UpdateSources() error {
 	return nil
 }
 
-func (p *Project) ApplyPatch(pluginsPath string) error {
+func (p *Project) ApplyPatch() error {
 	headHash, err := p.getHeadHash()
 	if err != nil {
 		fmt.Println(err)
@@ -124,7 +134,7 @@ func (p *Project) ApplyPatch(pluginsPath string) error {
 		args = append(args, option)
 	}
 
-	pluginPath, err := filepath.Abs(pluginsPath + "/" + p.Type)
+	pluginPath, err := filepath.Abs(*p.PluginsPath + "/" + p.Type)
 	if err != nil {
 		return err
 	}
@@ -145,6 +155,40 @@ func (p *Project) ApplyPatch(pluginsPath string) error {
 	fmt.Printf("Successfully applied %s patch %s!\n", p.Name, headHash)
 
 	return nil
+}
+
+func (p *Project) Update() {
+	p.updateMutex.Lock()
+	defer p.updateMutex.Unlock()
+
+	if err := p.Load(); err != nil {
+		fmt.Printf("Could not load %s: %s\n", p.Name, err)
+		return
+	}
+
+	if err := p.UpdateSources(); err != nil {
+		fmt.Printf("Could not update %s sources: %s\n", p.Name, err)
+		return
+	}
+
+	if err := p.ApplyPatch(); err != nil {
+		fmt.Printf("Could not apply patch to %s: %s\n", p.Name, err)
+		return
+	}
+}
+
+func (p *Project) KeepUpdated(ctx context.Context) {
+	p.ticker = gtime.NewTriggerableTicker(p.UpdateFrequency, ctx)
+	p.ticker.TriggerUpdate()
+
+	for {
+		select {
+		case <-p.ticker.C:
+			p.Update()
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (p *Project) updateLastAppliedPatch() (err error) {
@@ -223,4 +267,34 @@ func (p *Project) RepositoryPath() string {
 
 func (p *Project) RepositoryLastAppliedPatchPath() string {
 	return *p.RepositoriesPath + "/" + p.Name + ".last_applied_patch"
+}
+
+func (p *Project) WebhookPath() string {
+	if p.Webhook == nil {
+		return ""
+	}
+
+	return "/webhooks/" + string(p.Webhook.Provider) + "/" + p.Name
+}
+
+func (p *Project) RegisterWebhook() error {
+	if p.Webhook == nil {
+		return nil
+	}
+
+	if err := p.Webhook.Init(); err != nil {
+		return err
+	}
+
+	http.HandleFunc(p.WebhookPath(), func(w http.ResponseWriter, r *http.Request) {
+		if err := p.Webhook.Validate(w, r); err != nil {
+			fmt.Printf("Webhook discarded for %s: %s\n", p.Name, err.Error())
+			return
+		}
+
+		fmt.Printf("Webhook triggered for %s\n", p.Name)
+		p.ticker.TriggerUpdate()
+	})
+
+	return nil
 }

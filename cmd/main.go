@@ -9,8 +9,8 @@ import (
 
 func main() {
 	configPath := flag.String("config", "/etc/generic-gitops/config.yaml", "Configuration file path")
-	pluginsPath := flag.String("plugins", "/var/lib/generic-gitops/plugins", "Plugins directory path")
-	repositoriesPath := flag.String("repositories", "/var/lib/generic-gitops/repositories", "Repositories directory path")
+	flag.String("plugins", "/var/lib/generic-gitops/plugins", "Plugins directory path")
+	flag.String("repositories", "/var/lib/generic-gitops/repositories", "Repositories directory path")
 	flag.Parse()
 
 	config, err := internal.LoadConfig(*configPath)
@@ -19,5 +19,7 @@ func main() {
 	}
 
 	controller := internal.NewController(config)
-	controller.Start(*pluginsPath, *repositoriesPath)
+	if err := controller.Start(); err != nil {
+		log.Fatal(err.Error())
+	}
 }
