@@ -1,4 +1,4 @@
-module github.com/paullaffitte/generic-gitops
+module github.com/plaffitt/generic-gitops
 
 go 1.20
 
