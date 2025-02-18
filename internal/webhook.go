@@ -22,9 +22,10 @@ const (
 var bearerRegexp *regexp.Regexp = regexp.MustCompile("^Bearer .+")
 
 type Webhook struct {
-	Provider WebhookProvider `yaml:"provider"`
-	Secret   string          `yaml:"secret"`
-	Event    string          `yaml:"event"`
+	Provider         WebhookProvider `yaml:"provider"`
+	Secret           string          `yaml:"secret"`
+	GetSecretCommand string          `yaml:"getSecretCommand"`
+	Event            string          `yaml:"event"`
 
 	github *github.Webhook
 	gitlab *gitlab.Webhook
