@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -13,11 +14,12 @@ import (
 )
 
 type Config struct {
-	UpdateFrequency  time.Duration `yaml:"updateFrequency"`
-	PrivateKeyPath   string        `yaml:"privateKeyPath"`
-	Projects         []*Project    `yaml:"projects"`
-	RepositoriesPath string
-	PluginsPath      string
+	UpdateFrequency    time.Duration `yaml:"updateFrequency"`
+	PrivateKeyPath     string        `yaml:"privateKeyPath"`
+	Projects           []*Project    `yaml:"projects"`
+	WebhookSecretsPath string
+	RepositoriesPath   string
+	PluginsPath        string
 }
 
 func LoadConfig(configPath string) (*Config, error) {
@@ -33,6 +35,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("error unmarshalling YAML: %v", err)
 	}
 
+	config.WebhookSecretsPath = flag.Lookup("webhook-secrets").Value.String()
 	config.PluginsPath = flag.Lookup("plugins").Value.String()
 	config.RepositoriesPath = flag.Lookup("repositories").Value.String()
 
@@ -73,6 +76,25 @@ func (c *Config) loadProjectsConfig() error {
 		}
 		if project.UpdateFrequency == 0 {
 			project.UpdateFrequency = c.UpdateFrequency
+		}
+
+		if project.Webhook != nil {
+			webhook := project.Webhook
+			if webhook.Secret != "" && webhook.GetSecretCommand != "" {
+				return fmt.Errorf("both secret and getSecretCommand are set for %s webhook", project.Name)
+			} else if webhook.Secret == "" && webhook.GetSecretCommand == "" {
+				secret, err := os.ReadFile(c.WebhookSecretsPath + "/" + project.Name)
+				if err != nil {
+					return fmt.Errorf("no secret was configured for %s webhook", project.Name)
+				}
+				webhook.Secret = strings.TrimRight(string(secret), "\n")
+			} else if webhook.GetSecretCommand != "" {
+				output, err := exec.Command("sh", "-c", webhook.GetSecretCommand).CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("could not get secret for %s: %w", project.Name, err)
+				}
+				webhook.Secret = strings.TrimRight(string(output), "\n")
+			}
 		}
 
 		// TODO check that plugin project.Type exists
