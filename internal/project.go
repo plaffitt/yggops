@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -179,7 +178,7 @@ func (p *Project) Update() {
 
 func (p *Project) KeepUpdated(ctx context.Context) {
 	p.ticker = gtime.NewTriggerableTicker(p.UpdateFrequency, ctx)
-	p.ticker.TriggerUpdate()
+	p.TriggerUpdate()
 
 	for {
 		select {
@@ -189,6 +188,10 @@ func (p *Project) KeepUpdated(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (p *Project) TriggerUpdate() {
+	p.ticker.TriggerUpdate()
 }
 
 func (p *Project) updateLastAppliedPatch() (err error) {
@@ -274,27 +277,13 @@ func (p *Project) WebhookPath() string {
 		return ""
 	}
 
-	return "/webhooks/" + string(p.Webhook.Provider) + "/" + p.Name
+	return p.Webhook.Path()
 }
 
-func (p *Project) RegisterWebhook() error {
+func (p *Project) RegisterWebhook() {
 	if p.Webhook == nil {
-		return nil
+		return
 	}
 
-	if err := p.Webhook.Init(); err != nil {
-		return err
-	}
-
-	http.HandleFunc(p.WebhookPath(), func(w http.ResponseWriter, r *http.Request) {
-		if err := p.Webhook.Validate(w, r); err != nil {
-			fmt.Printf("Webhook discarded for %s: %s\n", p.Name, err.Error())
-			return
-		}
-
-		fmt.Printf("Webhook triggered for %s\n", p.Name)
-		p.ticker.TriggerUpdate()
-	})
-
-	return nil
+	p.Webhook.Register()
 }

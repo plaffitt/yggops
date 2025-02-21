@@ -1,14 +1,10 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
-	"slices"
 
-	"github.com/go-playground/webhooks/v6/github"
-	"github.com/go-playground/webhooks/v6/gitlab"
+	"github.com/plaffitt/generic-gitops/internal/webhooks"
 )
 
 type WebhookProvider string
@@ -19,90 +15,53 @@ const (
 	GitlabProvider  WebhookProvider = "gitlab"
 )
 
-var bearerRegexp *regexp.Regexp = regexp.MustCompile("^Bearer .+")
-
 type Webhook struct {
 	Provider         WebhookProvider `yaml:"provider"`
 	Secret           string          `yaml:"secret"`
 	GetSecretCommand string          `yaml:"getSecretCommand"`
 	Event            string          `yaml:"event"`
 
-	github *github.Webhook
-	gitlab *gitlab.Webhook
+	project *Project
+	handler webhooks.Handler
 }
 
-func (w *Webhook) Init() error {
-	switch w.Provider {
-	case GithubProvider:
-		hook, err := github.New(github.Options.Secret(w.Secret))
-		if err != nil {
-			return err
-		}
-		w.github = hook
-		return nil
-	case GitlabProvider:
-		hook, err := gitlab.New(gitlab.Options.Secret(w.Secret))
-		if err != nil {
-			return err
-		}
-		w.gitlab = hook
-		return nil
-	case GenericProvider:
-		return nil
-	}
+func (w *Webhook) Init(project *Project) error {
+	w.project = project
 
-	return fmt.Errorf("invalid webhook provider: %s", w.Provider)
-}
-
-func (w *Webhook) Validate(writer http.ResponseWriter, request *http.Request) error {
 	var err error
 
 	switch w.Provider {
-	case GithubProvider:
-		event := request.Header.Get("X-GitHub-Event")
-		fmt.Printf("Received Github \"%s\" event\n", event)
-		_, err = w.github.Parse(request, github.Event(w.Event))
-		if slices.Contains([]error{github.ErrInvalidHTTPMethod, github.ErrEventNotFound}, err) {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-			return err
-		} else if slices.Contains([]error{github.ErrMissingGithubEventHeader, github.ErrMissingHubSignatureHeader, github.ErrHMACVerificationFailed}, err) {
-			http.Error(writer, err.Error(), http.StatusUnauthorized)
-			return err
-		}
-	case GitlabProvider:
-		event := request.Header.Get("X-Gitlab-Event")
-		fmt.Printf("Received Gitlab \"%s\" event\n", event)
-		_, err = w.gitlab.Parse(request, gitlab.Event(w.Event))
-		if slices.Contains([]error{gitlab.ErrInvalidHTTPMethod, gitlab.ErrEventNotFound}, err) {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-			return err
-		} else if slices.Contains([]error{gitlab.ErrMissingGitLabEventHeader, gitlab.ErrGitLabTokenVerificationFailed}, err) {
-			http.Error(writer, err.Error(), http.StatusUnauthorized)
-			return err
-		}
 	case GenericProvider:
-		fmt.Printf("Received generic webhook event\n")
-		authorization := request.Header.Get("Authorization")
-		if bearerRegexp.Match([]byte(authorization)) {
-			token := authorization[len("Bearer "):]
-			if token != w.Secret {
-				err = errors.New("invalid token")
-				http.Error(writer, err.Error(), http.StatusUnauthorized)
-				return err
+		w.handler, err = webhooks.NewGeneric(w.Secret)
+	case GithubProvider:
+		w.handler, err = webhooks.NewGithub(w.Secret, w.Event)
+	case GitlabProvider:
+		w.handler, err = webhooks.NewGitlab(w.Secret, w.Event)
+	default:
+		return fmt.Errorf("invalid webhook provider: %s", w.Provider)
+	}
+
+	return err
+}
+
+func (w *Webhook) Register() {
+	http.HandleFunc(w.Path(), func(writer http.ResponseWriter, request *http.Request) {
+		if status, err := w.handler.Validate(request); err != nil {
+			if status == http.StatusInternalServerError {
+				err = fmt.Errorf("unexpected error %w", err)
 			}
-		} else {
-			err = errors.New("missing token")
-			http.Error(writer, err.Error(), http.StatusUnauthorized)
-			return err
+
+			http.Error(writer, err.Error(), status)
+			fmt.Printf("Webhook discarded for %s: %s\n", w.project.Name, err.Error())
+			return
 		}
-	}
 
-	if err != nil {
-		err = fmt.Errorf("unexpected error %w", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return err
-	}
+		fmt.Fprint(writer, "OK")
+		fmt.Printf("Webhook triggered for %s\n", w.project.Name)
+		w.project.TriggerUpdate()
+	})
+}
 
-	fmt.Fprint(writer, "OK")
-	return nil
+func (w *Webhook) Path() string {
+	return "/webhooks/" + string(w.Provider) + "/" + w.project.Name
 }
