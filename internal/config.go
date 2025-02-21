@@ -80,6 +80,7 @@ func (c *Config) loadProjectsConfig() error {
 
 		if project.Webhook != nil {
 			webhook := project.Webhook
+
 			if webhook.Secret != "" && webhook.GetSecretCommand != "" {
 				return fmt.Errorf("both secret and getSecretCommand are set for %s webhook", project.Name)
 			} else if webhook.Secret == "" && webhook.GetSecretCommand == "" {
@@ -94,6 +95,10 @@ func (c *Config) loadProjectsConfig() error {
 					return fmt.Errorf("could not get secret for %s: %w", project.Name, err)
 				}
 				webhook.Secret = strings.TrimRight(string(output), "\n")
+			}
+
+			if err := webhook.Init(project); err != nil {
+				return fmt.Errorf("could not init webhook for %s: %w", project.Name, err)
 			}
 		}
 

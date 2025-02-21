@@ -10,10 +10,6 @@ type Controller struct {
 	config *Config
 }
 
-type Hook[T ~string] interface {
-	Parse(r *http.Request, events ...T) (interface{}, error)
-}
-
 func NewController(config *Config) *Controller {
 	return &Controller{config}
 }
@@ -38,9 +34,7 @@ func (c *Controller) Start() error {
 
 	ctx := context.Background()
 	for _, project := range c.config.Projects {
-		if err := project.RegisterWebhook(); err != nil {
-			return err
-		}
+		project.RegisterWebhook()
 		go project.KeepUpdated(ctx)
 	}
 
