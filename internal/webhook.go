@@ -34,9 +34,9 @@ func (w *Webhook) Init(project *Project) error {
 	case GenericProvider:
 		w.handler, err = webhooks.NewGeneric(w.Secret)
 	case GithubProvider:
-		w.handler, err = webhooks.NewGithub(w.Secret, w.Event)
+		w.handler, err = webhooks.NewGithub(w.Secret, w.Event, w.project.Branch)
 	case GitlabProvider:
-		w.handler, err = webhooks.NewGitlab(w.Secret, w.Event)
+		w.handler, err = webhooks.NewGitlab(w.Secret, w.Event, w.project.Branch)
 	default:
 		return fmt.Errorf("invalid webhook provider: %s", w.Provider)
 	}
