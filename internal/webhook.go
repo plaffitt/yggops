@@ -19,7 +19,7 @@ type Webhook struct {
 	Provider         WebhookProvider `yaml:"provider"`
 	Secret           string          `yaml:"secret"`
 	GetSecretCommand string          `yaml:"getSecretCommand"`
-	Event            string          `yaml:"event"`
+	Events           []string        `yaml:"events"`
 
 	project *Project
 	handler webhooks.Handler
@@ -34,9 +34,9 @@ func (w *Webhook) Init(project *Project) error {
 	case GenericProvider:
 		w.handler, err = webhooks.NewGeneric(w.Secret)
 	case GithubProvider:
-		w.handler, err = webhooks.NewGithub(w.Secret, w.Event, w.project.Branch)
+		w.handler, err = webhooks.NewGithub(w.Secret, w.Events, w.project.Branch)
 	case GitlabProvider:
-		w.handler, err = webhooks.NewGitlab(w.Secret, w.Event, w.project.Branch)
+		w.handler, err = webhooks.NewGitlab(w.Secret, w.Events, w.project.Branch)
 	default:
 		return fmt.Errorf("invalid webhook provider: %s", w.Provider)
 	}
