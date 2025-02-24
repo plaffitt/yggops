@@ -38,5 +38,7 @@ func (c *Controller) Start() error {
 		go project.KeepUpdated(ctx)
 	}
 
-	return http.ListenAndServe(":3000", nil)
+	fmt.Println("Starting webhook server, listening on", c.config.Listen)
+
+	return http.ListenAndServe(c.config.Listen, nil)
 }

@@ -17,6 +17,7 @@ type Config struct {
 	UpdateFrequency    time.Duration `yaml:"updateFrequency"`
 	PrivateKeyPath     string        `yaml:"privateKeyPath"`
 	Projects           []*Project    `yaml:"projects"`
+	Listen             string        `yaml:"listen"`
 	WebhookSecretsPath string
 	RepositoriesPath   string
 	PluginsPath        string
@@ -35,6 +36,10 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("error unmarshalling YAML: %v", err)
 	}
 
+	listenFlag := flag.Lookup("listen")
+	if listenFlag.Value.String() != listenFlag.DefValue || config.Listen == "" {
+		config.Listen = listenFlag.Value.String()
+	}
 	config.WebhookSecretsPath = flag.Lookup("webhook-secrets").Value.String()
 	config.PluginsPath = flag.Lookup("plugins").Value.String()
 	config.RepositoriesPath = flag.Lookup("repositories").Value.String()

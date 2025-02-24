@@ -9,6 +9,7 @@ import (
 
 func main() {
 	configPath := flag.String("config", "/etc/generic-gitops/config.yaml", "Configuration file path")
+	flag.String("listen", ":3000", "Webhook listen address (<ip:port>)")
 	flag.String("webhook-secrets", "/etc/generic-gitops/webhook-secrets", "Webhook secrets directory path")
 	flag.String("plugins", "/var/lib/generic-gitops/plugins", "Plugins directory path")
 	flag.String("repositories", "/var/lib/generic-gitops/repositories", "Repositories directory path")
