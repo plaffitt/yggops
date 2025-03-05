@@ -1,4 +1,4 @@
-module github.com/plaffitt/generic-gitops
+module github.com/plaffitt/yggops
 
 go 1.23.6
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=Generic GitOps Application
+Description=YggOps - The Generic GitOps Application
 After=network.target
 
 [Service]

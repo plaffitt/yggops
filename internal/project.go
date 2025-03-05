@@ -13,7 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	gtime "github.com/plaffitt/generic-gitops/internal/time"
+	gtime "github.com/plaffitt/yggops/internal/time"
 )
 
 type Project struct {
