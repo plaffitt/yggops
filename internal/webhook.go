@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/plaffitt/generic-gitops/internal/webhooks"
+	"github.com/plaffitt/yggops/internal/webhooks"
 )
 
 type WebhookProvider string

@@ -1,12 +1,12 @@
 [Unit]
-Description=Generic GitOps Application
+Description=YggOps - The Generic GitOps Application
 After=network.target
 
 [Service]
 User=${USER_NAME}
 Group=${GROUP_NAME}
 WorkingDirectory=/var/lib/${BINARY_NAME}
-ExecStart=/usr/bin/${BINARY_NAME}
+ExecStart=/usr/local/bin/${BINARY_NAME}
 Restart=always
 
 [Install]

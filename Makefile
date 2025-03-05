@@ -6,8 +6,8 @@ GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get
 
 # Name of the binary
-BINARY_NAME = generic-gitops
-
+BINARY_NAME = yggops
+ 
 # Service configuration
 USER_NAME = root
 GROUP_NAME = root
@@ -38,12 +38,13 @@ install_plugins:
 uninstall_plugins:
 	rm -rf /var/lib/$(SERVICE_PATH)/plugins
 
-install: generic-gitops install_plugins
+install: yggops install_plugins
 	mkdir -p /etc/$(BINARY_NAME)
 	if [ ! -f /etc/$(BINARY_NAME)/config.yaml ]; then install -m 0644 ./systemd/config.yaml /etc/$(BINARY_NAME)/config.yaml; fi
-	install -m 0755 $(BINARY_NAME) /usr/bin/$(BINARY_NAME)
+	install -m 0755 $(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
 	USER_NAME=$(USER_NAME) GROUP_NAME=$(GROUP_NAME) BINARY_NAME=$(BINARY_NAME) envsubst < ./systemd/$(SERVICE_NAME) | install -m 0644 /dev/stdin $(SERVICE_PATH)
 	systemctl daemon-reload
+	systemctl unmask $(SERVICE_NAME)
 	systemctl enable $(SERVICE_NAME)
 	systemctl start $(SERVICE_NAME)
 
