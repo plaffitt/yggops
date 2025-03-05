@@ -10,7 +10,19 @@ YggOps can be run as a systemd service or as a standalone binary. It will regula
 
 Plugins are what allow you to deploy your code in various ways. They are idempotent and are responsible for deploying specific things such as docker compose stacks, shell scripts, etc. You can easily imagine writing a plugin to deploy a Terraform configuration, a systemd service or anything else you can think of. Actually you could even deploy a Kubernetes manifest with a plugin if you wanted to, but the main interest is to deploy code that should run on the host where YggOps is running, otherwise tools like GitLab CI/CD are largely enough.
 
-## Configuration
+## Installation
+
+For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://golang.org) installed on your machine as well as `make`. 
+To install it on a server, run the following commands:
+
+```sh
+make build # or make docker-build if you don't have Go installed
+sudo make install
+```
+
+It will install YggOps systemd service, copy its default configuration to `/etc/yggops/config.yaml`, and start it.
+
+### Configuration
 
 | entry | default | description |
 |-|-|-|
@@ -25,6 +37,10 @@ Plugins are what allow you to deploy your code in various ways. They are idempot
 | `projects.updateFrequency` | | Overrides the global value |
 | `projects.options` | | Options to pass to the plugin as command line flags |
 | `projects.webhook` | | Configuration of a webhook to trigger reconciliation |
+| `projects.webhook.provider` | | Can be `github`, `gitlab` or `generic`|
+| `projects.webhook.secret` | | The webhook secret |
+| `projects.webhook.getSecretCommand` | | A command that outputs the webhook secret on stdout |
+| `projects.webhook.events` | `push` | A list of events to react to |
 
 Example:
 
@@ -34,6 +50,11 @@ privateKeyPath: /home/user/.ssh/id_ed25519
 projects:
   - type: docker_compose
     repository: git@github.com:username/docker-compose-project.git
+    updateFrequency: 1h
+    webhook:
+      provider: github
+      secret: my_secret
+      events: [push]
   - type: shell
     name: custom_name
     repository: git@github.com:username/project.git
@@ -41,3 +62,5 @@ projects:
     options:
       script: install awesome_script.sh /usr/local/bin
 ```
+
+`projects.webhook.secret` and `projects.webhook.getSecretCommand` cannot be set at the same time, but if both are empty, YggOps will read the secret from `/etc/yggops/webhook-secrets/<project_name>`. 
