@@ -12,7 +12,7 @@ Plugins are what allow you to deploy your code in various ways. They are idempot
 
 ## Installation
 
-For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://golang.org) installed on your machine as well as `make`. 
+For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://golang.org) installed on your machine as well as `make`.
 To install it on a server, run the following commands:
 
 ```sh
@@ -35,7 +35,7 @@ It will install YggOps systemd service, copy its default configuration to `/etc/
 | `projects.repository` | | Url of the repository to clone |
 | `projects.branch` | main | Name of the branch to be synchronized with |
 | `projects.updateFrequency` | | Overrides the global value |
-| `projects.options` | | Options to pass to the plugin as command line flags |
+| `projects.options` | | Options to pass to the plugin |
 | `projects.webhook` | | Configuration of a webhook to trigger reconciliation |
 | `projects.webhook.provider` | | Can be `github`, `gitlab` or `generic`|
 | `projects.webhook.secret` | | The webhook secret |
@@ -63,4 +63,33 @@ projects:
       script: install awesome_script.sh /usr/local/bin
 ```
 
-`projects.webhook.secret` and `projects.webhook.getSecretCommand` cannot be set at the same time, but if both are empty, YggOps will read the secret from `/etc/yggops/webhook-secrets/<project_name>`. 
+`projects.webhook.secret` and `projects.webhook.getSecretCommand` cannot be set at the same time, but if both are empty, YggOps will read the secret from `/etc/yggops/webhook-secrets/<project_name>`.
+
+## Plugins
+
+YggOps comes with a few plugins by default. For now it includes `shell` and `docker_compose` plugins, but it may includes additional plugins in the future. Plugins are located in `/var/lib/yggops/plugins/`.
+
+### Shell
+
+The shell plugin is a bit special because it is almost not a plugin since it does nothing but running a command that you give to it. So providing the source code of another plugin written in bash as the `script` option of this plugin would be the same as using the given plugin directly.
+
+| option | required | default | description |
+|-|-|-|-|
+| `script` | yes | | Script to run |
+
+### Docker Compose
+
+| option | required | default | description |
+|-|-|-|-|
+| `env-file` | no | | Flag `--env-file` of the docker compose CLI |
+| `build` | no | `true` | Flag `--build` of the docker compose CLI |
+| `remove-orphans` | no | `true` | Flag `--remove-orphans` of the docker compose CLI |
+
+### Write your own
+
+If default plugins don't suit your needs, you can easily write your own plugin in any language you want. There are only a few rules:
+
+- They have to be idempotent
+- They have to assume that the working directory will be reset before reconciliation (there is no persistence, so state should be kept somewhere else)
+
+Options will be passed to plugins as flags. The filename of the plugin will be used to reference it in the `type` entry of project definition.
