@@ -26,7 +26,7 @@ It will install YggOps systemd service, copy its default configuration to `/etc/
 
 | entry | default | description |
 |-|-|-|
-| `updateFrequency` | | Frequency of repository updates |
+| `updateInterval` | | Interval of repository updates |
 | `privateKeyPath` | | Path to private key to use to pull (optional) |
 | `listen` | :3000 | Address to listen to |
 | `projects` | | List of projects to handle |
@@ -34,7 +34,7 @@ It will install YggOps systemd service, copy its default configuration to `/etc/
 | `projects.name` | [repository name] | Name of the project |
 | `projects.repository` | | Url of the repository to clone |
 | `projects.branch` | main | Name of the branch to be synchronized with |
-| `projects.updateFrequency` | | Overrides the global value |
+| `projects.updateInterval` | | Overrides the global value |
 | `projects.options` | | Options to pass to the plugin |
 | `projects.webhook` | | Configuration of a webhook to trigger reconciliation |
 | `projects.webhook.provider` | | Can be `github`, `gitlab` or `generic`|
@@ -45,12 +45,12 @@ It will install YggOps systemd service, copy its default configuration to `/etc/
 Example:
 
 ```yaml
-updateFrequency: 5m
+updateInterval: 5m
 privateKeyPath: /home/user/.ssh/id_ed25519
 projects:
   - type: docker_compose
     repository: git@github.com:username/docker-compose-project.git
-    updateFrequency: 1h
+    updateInterval: 1h
     webhook:
       provider: github
       secret: my_secret

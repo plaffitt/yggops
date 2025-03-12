@@ -15,7 +15,7 @@ func NewController(config *Config) *Controller {
 }
 
 func (c *Controller) Start() error {
-	fmt.Println("Update frequency:", c.config.UpdateFrequency)
+	fmt.Println("Update interval:", c.config.UpdateInterval)
 	fmt.Println("Private key path:", c.config.PrivateKeyPath)
 
 	fmt.Println("\nProjects:\n=========================")
@@ -24,7 +24,7 @@ func (c *Controller) Start() error {
 		fmt.Println("Type:", project.Type)
 		fmt.Println("Repository:", project.Repository)
 		fmt.Println("Branch:", project.Branch)
-		fmt.Println("UpdateFrequency:", project.UpdateFrequency)
+		fmt.Println("UpdateInterval:", project.UpdateInterval)
 		fmt.Println("Webhook:", project.WebhookPath())
 		fmt.Println("Options:", project.Options)
 		fmt.Println("=========================")

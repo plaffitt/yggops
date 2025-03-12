@@ -21,7 +21,7 @@ type Project struct {
 	Type             string            `yaml:"type"`
 	Repository       string            `yaml:"repository"`
 	Branch           string            `yaml:"branch"`
-	UpdateFrequency  time.Duration     `yaml:"updateFrequency"`
+	UpdateInterval   time.Duration     `yaml:"updateInterval"`
 	Webhook          *Webhook          `yaml:"webhook,omitempty"`
 	Options          map[string]string `yaml:"options"`
 	RepositoriesPath *string
@@ -177,7 +177,7 @@ func (p *Project) Update() {
 }
 
 func (p *Project) KeepUpdated(ctx context.Context) {
-	p.ticker = gtime.NewTriggerableTicker(p.UpdateFrequency, ctx)
+	p.ticker = gtime.NewTriggerableTicker(p.UpdateInterval, ctx)
 	p.TriggerUpdate()
 
 	for {
@@ -200,7 +200,7 @@ func (p *Project) updateLastAppliedPatch() (err error) {
 		return
 	}
 
-	err = os.WriteFile(p.RepositoryLastAppliedPatchPath(), []byte(p.lastAppliedPatch.String()), 0644)
+	err = os.WriteFile(p.RepositoryLastAppliedPatchPath(), []byte(p.lastAppliedPatch.String()), 0o644)
 	if err != nil {
 		return
 	}

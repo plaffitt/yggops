@@ -14,7 +14,7 @@ import (
 )
 
 type Config struct {
-	UpdateFrequency    time.Duration `yaml:"updateFrequency"`
+	UpdateInterval    time.Duration `yaml:"updateInterval"`
 	PrivateKeyPath     string        `yaml:"privateKeyPath"`
 	Projects           []*Project    `yaml:"projects"`
 	Listen             string        `yaml:"listen"`
@@ -79,8 +79,8 @@ func (c *Config) loadProjectsConfig() error {
 		if project.Branch == "" {
 			project.Branch = "main"
 		}
-		if project.UpdateFrequency == 0 {
-			project.UpdateFrequency = c.UpdateFrequency
+		if project.UpdateInterval == 0 {
+			project.UpdateInterval = c.UpdateInterval
 		}
 
 		if project.Webhook != nil {
