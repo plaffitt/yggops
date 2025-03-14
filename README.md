@@ -48,7 +48,7 @@ Example:
 updateInterval: 5m
 privateKeyPath: /home/user/.ssh/id_ed25519
 projects:
-  - type: docker_compose
+  - type: docker-compose
     repository: git@github.com:username/docker-compose-project.git
     updateInterval: 1h
     webhook:
@@ -67,7 +67,7 @@ projects:
 
 ## Plugins
 
-YggOps comes with a few plugins by default. For now it includes `shell` and `docker_compose` plugins, but it may includes additional plugins in the future. Plugins are located in `/var/lib/yggops/plugins/`.
+YggOps comes with a few plugins by default. For now it includes `shell` and `docker-compose` plugins, but it may includes additional plugins in the future. Plugins are located in `/var/lib/yggops/plugins/`.
 
 ### Shell
 
