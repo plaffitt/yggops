@@ -12,8 +12,7 @@ Plugins are what allow you to deploy your code in various ways. They are idempot
 
 ## Installation
 
-For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://golang.org) installed on your machine as well as `make`.
-To install it on a server, run the following commands:
+For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://go.dev/doc/install) installed on your machine as well as `make` (`sudo apt install make` should do it). To install YggOps on a remote host, clone this repository and run the following commands within it:
 
 ```sh
 make build # or make docker-build if you don't have Go installed
@@ -21,6 +20,24 @@ sudo make install
 ```
 
 It will install YggOps systemd service, copy its default configuration to `/etc/yggops/config.yaml`, and start it.
+
+### SSH configuration
+
+
+In order to let YggOps clone git repositories over ssh, you will need to provide a private key using the `privateKeyPath` configuration option. Don't forget to set the correct permissions on the private key file and add the corresponding public key to your git repositories. You may want to use a dedicated key instead of your personnal one.
+
+Read the following documentation to know how to add an ssh key to your git server:
+
+- [GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+- [GitLab](https://docs.gitlab.com/user/ssh/#add-an-ssh-key-to-your-gitlab-account)
+
+After adding the public key to your git server, you can test the connection with the following command:
+
+```sh
+ssh -T git@your-git-server.example.com -i /path/to/private-key
+```
+
+Remember that you have to trust every single git server you want to clone from, so you may have to run this command for each of them.
 
 ### Configuration
 
