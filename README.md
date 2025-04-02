@@ -21,6 +21,8 @@ sudo make install
 
 It will install YggOps systemd service, copy its default configuration to `/etc/yggops/config.yaml`, and start it.
 
+You're now ready to configure your YggOps instance. Take a look at the following sub-sections for configuration and try to start with this [quickstart template](https://github.com/plaffitt/yggops-quickstart-template) to get started!
+
 ### SSH configuration
 
 
