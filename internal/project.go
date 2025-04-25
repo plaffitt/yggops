@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,13 +19,13 @@ import (
 )
 
 type Project struct {
-	Name             string            `yaml:"name"`
-	Type             string            `yaml:"type"`
-	Repository       string            `yaml:"repository"`
-	Branch           string            `yaml:"branch"`
-	UpdateInterval   time.Duration     `yaml:"updateInterval"`
-	Webhook          *Webhook          `yaml:"webhook,omitempty"`
-	Options          map[string]string `yaml:"options"`
+	Name             string         `yaml:"name"`
+	Type             string         `yaml:"type"`
+	Repository       string         `yaml:"repository"`
+	Branch           string         `yaml:"branch"`
+	UpdateInterval   time.Duration  `yaml:"updateInterval"`
+	Webhook          *Webhook       `yaml:"webhook,omitempty"`
+	Options          map[string]any `yaml:"options"`
 	RepositoriesPath *string
 	PluginsPath      *string
 	Auth             transport.AuthMethod
@@ -127,10 +129,9 @@ func (p *Project) ApplyPatch() error {
 	}
 
 	fmt.Printf("Applying %s patch %s...\n", p.Name, headHash)
-	args := []string{}
-	for name, option := range p.Options {
-		args = append(args, "--"+name)
-		args = append(args, option)
+	jsonOptions, err := json.Marshal(p.Options)
+	if err != nil {
+		return err
 	}
 
 	pluginPath, err := filepath.Abs(*p.PluginsPath + "/" + p.Type)
@@ -138,9 +139,10 @@ func (p *Project) ApplyPatch() error {
 		return err
 	}
 
-	cmd := exec.Command(pluginPath, args...)
+	cmd := exec.Command(pluginPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = bytes.NewReader(jsonOptions)
 	cmd.Dir = p.RepositoryPath()
 
 	if err = cmd.Run(); err != nil {

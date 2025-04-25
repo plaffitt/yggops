@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import argparse
+import sys
+import json
+
 from utils import run
 
-parser = argparse.ArgumentParser(description='Execute an arbitrary script')
 
-parser.add_argument('--script', help='Script to run', required=True)
+opts = json.load(sys.stdin)
 
-args = parser.parse_args()
-
-run(['sh', '-c', args.script])
+run(["sh", "-c", opts["script"]])

@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 
-import argparse
+import sys
+import json
+
 from utils import run
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--env-file', help='.env to use')
-parser.add_argument('--build', default=True, help='Build containers before starting the stack')
-parser.add_argument('--remove-orphans', default=True, help='Remove orphaned containers')
-args = parser.parse_args()
 
-command = 'docker compose'
+opts = json.load(sys.stdin)
 
-if args.env_file:
-  command += f' --env-file {args.env_file}'
+command = "docker compose"
 
-command += ' up -d'
+if opts.get("env-file"):
+    command += f" --env-file {opts['env-file']}"
 
-if args.build:
-  command += f' --build'
+command += " up -d"
 
-if args.remove_orphans:
-  command += f' --remove-orphans'
+if opts.get("build") is True:
+    command += " --build"
 
-run(command.split(' '))
+if opts.get("remove-orphans", True) is True:
+    command += " --remove-orphans"
+
+run(command.split(" "))

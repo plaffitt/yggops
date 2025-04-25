@@ -86,7 +86,7 @@ projects:
 
 ## Plugins
 
-YggOps comes with a few plugins by default. For now it includes `shell` and `docker-compose` plugins, but it may includes additional plugins in the future. Plugins are located in `/var/lib/yggops/plugins/`.
+YggOps comes with a few plugins by default. For now it includes `shell` and `docker-compose` plugins, but it may includes additional plugins in the future. Plugins are located in `/var/lib/yggops/plugins/`. To install a new plugin, you just have to put it in the plugins directory.
 
 ### Shell
 
@@ -101,7 +101,7 @@ The shell plugin is a bit special because it is almost not a plugin since it doe
 | option | required | default | description |
 |-|-|-|-|
 | `env-file` | no | | Flag `--env-file` of the docker compose CLI |
-| `build` | no | `true` | Flag `--build` of the docker compose CLI |
+| `build` | no | `false` | Flag `--build` of the docker compose CLI |
 | `remove-orphans` | no | `true` | Flag `--remove-orphans` of the docker compose CLI |
 
 ### Write your own
@@ -111,4 +111,4 @@ If default plugins don't suit your needs, you can easily write your own plugin i
 - They have to be idempotent
 - They have to assume that the working directory will be reset before reconciliation (there is no persistence, so state should be kept somewhere else)
 
-Options will be passed to plugins as flags. The filename of the plugin will be used to reference it in the `type` entry of project definition.
+Options will be passed to plugins as json on stdin. The filename of the plugin will be used to reference it in the `type` entry of project definition.
