@@ -23,7 +23,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			config, err := internal.LoadConfig(configPath, cmd.LocalFlags())
 			if err != nil {
-				log.Fatal(err.Error())
+				log.Fatal("error while loading configuration: " + err.Error())
 			}
 
 			controller := internal.NewController(config)

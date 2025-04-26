@@ -134,7 +134,7 @@ func (p *Project) ApplyPatch() error {
 		return err
 	}
 
-	pluginPath, err := filepath.Abs(*p.PluginsPath + "/" + p.Type)
+	pluginPath, err := p.PluginPath()
 	if err != nil {
 		return err
 	}
@@ -288,4 +288,8 @@ func (p *Project) RegisterWebhook() {
 	}
 
 	p.Webhook.Register()
+}
+
+func (p *Project) PluginPath() (string, error) {
+	return filepath.Abs(*p.PluginsPath + "/" + p.Type)
 }

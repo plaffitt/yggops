@@ -113,7 +113,16 @@ func (c *Config) loadProjectsConfig() error {
 			}
 		}
 
-		// TODO check that plugin project.Type exists
+		pluginPath, err := project.PluginPath()
+		if err != nil {
+			return err
+		}
+		if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
+			return fmt.Errorf("plugin \"%s\" not found for project \"%s\"", project.Type, project.Name)
+		}
+		if err := os.Chmod(pluginPath, 0700); err != nil {
+			return fmt.Errorf("plugin \"%s\" is not executable", pluginPath)
+		}
 	}
 
 	return nil
