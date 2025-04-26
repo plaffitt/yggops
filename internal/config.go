@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,45 +9,52 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"gopkg.in/yaml.v2"
+	"github.com/iancoleman/strcase"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
+	"github.com/spf13/pflag"
 )
 
 type Config struct {
-	UpdateInterval    time.Duration `yaml:"updateInterval"`
-	PrivateKeyPath     string        `yaml:"privateKeyPath"`
-	Projects           []*Project    `yaml:"projects"`
-	Listen             string        `yaml:"listen"`
-	WebhookSecretsPath string
-	RepositoriesPath   string
-	PluginsPath        string
+	UpdateInterval     time.Duration `koanf:"updateInterval"`
+	PrivateKeyPath     string        `koanf:"privateKeyPath"`
+	Projects           []*Project    `koanf:"projects"`
+	Listen             string        `koanf:"listen"`
+	WebhookSecretsPath string        `koanf:"webhookSecrets"`
+	RepositoriesPath   string        `koanf:"repositories"`
+	PluginsPath        string        `koanf:"plugins"`
 }
 
-func LoadConfig(configPath string) (*Config, error) {
-	yamlFile, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("error reading YAML file: %v", err)
-	}
+func LoadConfig(configPath string, flags *pflag.FlagSet) (*Config, error) {
+	k := koanf.New(".")
 
-	var config Config
+	k.Load(confmap.Provider(map[string]any{
+		"updateInterval": "5m",
+	}, "."), nil)
 
-	err = yaml.Unmarshal(yamlFile, &config)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling YAML: %v", err)
-	}
-
-	listenFlag := flag.Lookup("listen")
-	if listenFlag.Value.String() != listenFlag.DefValue || config.Listen == "" {
-		config.Listen = listenFlag.Value.String()
-	}
-	config.WebhookSecretsPath = flag.Lookup("webhook-secrets").Value.String()
-	config.PluginsPath = flag.Lookup("plugins").Value.String()
-	config.RepositoriesPath = flag.Lookup("repositories").Value.String()
-
-	if err = config.loadProjectsConfig(); err != nil {
+	if err := k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
 		return nil, err
 	}
 
-	return &config, err
+	if err := k.Load(posflag.ProviderWithValue(flags, ".", k, func(key, value string) (string, any) {
+		return strcase.ToCamel(key), value
+	}), nil); err != nil {
+		return nil, err
+	}
+
+	config := &Config{}
+	if err := k.Unmarshal("", config); err != nil {
+		return nil, err
+	}
+
+	if err := config.loadProjectsConfig(); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 func (c *Config) getAuthMethod() (auth transport.AuthMethod, err error) {

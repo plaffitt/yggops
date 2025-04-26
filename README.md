@@ -45,9 +45,12 @@ Remember that you have to trust every single git server you want to clone from, 
 
 | entry | default | description |
 |-|-|-|
-| `updateInterval` | | Interval of repository updates |
+| `updateInterval` | `5m` | Interval of repository updates |
 | `privateKeyPath` | | Path to private key to use to pull (optional) |
 | `listen` | :3000 | Address to listen to |
+| `plugins` | `/etc/yggops/plugins` | Plugins path |
+| `repositories` | `/etc/yggops/repositories` | Repositories path |
+| `webhookSecrets` | `/etc/yggops/webhook-secrets` | Webhook secrets path |
 | `projects` | | List of projects to handle |
 | `projects.type` | | Name of the plugin to use |
 | `projects.name` | [repository name] | Name of the project |
