@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,35 +27,60 @@ type Config struct {
 	WebhookSecretsPath string        `koanf:"webhookSecrets"`
 	RepositoriesPath   string        `koanf:"repositories"`
 	PluginsPath        string        `koanf:"plugins"`
+
+	fileProvider *file.File
+	flags        *pflag.FlagSet
 }
 
-func LoadConfig(configPath string, flags *pflag.FlagSet) (*Config, error) {
+func NewConfig(configPath string, flags *pflag.FlagSet) *Config {
+	return &Config{
+		fileProvider: file.Provider(configPath),
+		flags:        flags,
+	}
+}
+
+func (c *Config) Load() error {
 	k := koanf.New(".")
 
-	k.Load(confmap.Provider(map[string]any{
+	if err := k.Load(confmap.Provider(map[string]any{
 		"updateInterval": "5m",
-	}, "."), nil)
-
-	if err := k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
-		return nil, err
+	}, "."), nil); err != nil {
+		return err
 	}
 
-	if err := k.Load(posflag.ProviderWithValue(flags, ".", k, func(key, value string) (string, any) {
+	if err := k.Load(c.fileProvider, yaml.Parser()); err != nil {
+		return err
+	}
+
+	if err := k.Load(posflag.ProviderWithValue(c.flags, ".", k, func(key, value string) (string, any) {
 		return strcase.ToCamel(key), value
 	}), nil); err != nil {
-		return nil, err
+		return err
 	}
 
-	config := &Config{}
-	if err := k.Unmarshal("", config); err != nil {
-		return nil, err
+	if err := k.Unmarshal("", c); err != nil {
+		return err
 	}
 
-	if err := config.loadProjectsConfig(); err != nil {
-		return nil, err
+	if err := c.loadProjectsConfig(); err != nil {
+		return err
 	}
 
-	return config, nil
+	return nil
+}
+
+func (c *Config) Watch(callback func()) {
+	c.fileProvider.Watch(func(event any, err error) {
+		if err != nil {
+			log.Fatalf("error while watching configuration: %s", err.Error())
+		}
+
+		if err := c.Load(); err != nil {
+			log.Fatalf("error while reloading configuration: %s", err.Error())
+		}
+
+		callback()
+	})
 }
 
 func (c *Config) getAuthMethod() (auth transport.AuthMethod, err error) {

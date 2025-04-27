@@ -21,12 +21,13 @@ func main() {
 		Use:   "yggops",
 		Short: "YggOps controller",
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err := internal.LoadConfig(configPath, cmd.LocalFlags())
-			if err != nil {
+			config := internal.NewConfig(configPath, cmd.LocalFlags())
+			if err := config.Load(); err != nil {
 				log.Fatal("error while loading configuration: " + err.Error())
 			}
 
 			controller := internal.NewController(config)
+
 			if err := controller.Start(); err != nil {
 				log.Fatal(err.Error())
 			}

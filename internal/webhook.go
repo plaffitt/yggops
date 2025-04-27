@@ -44,8 +44,8 @@ func (w *Webhook) Init(project *Project) error {
 	return err
 }
 
-func (w *Webhook) Register() {
-	http.HandleFunc(w.Path(), func(writer http.ResponseWriter, request *http.Request) {
+func (w *Webhook) Register(serveMux *http.ServeMux) {
+	serveMux.HandleFunc(w.Path(), func(writer http.ResponseWriter, request *http.Request) {
 		if status, err := w.handler.Validate(request); err != nil {
 			if status == http.StatusInternalServerError {
 				err = fmt.Errorf("unexpected error %w", err)

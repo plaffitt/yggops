@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -282,12 +283,12 @@ func (p *Project) WebhookPath() string {
 	return p.Webhook.Path()
 }
 
-func (p *Project) RegisterWebhook() {
+func (p *Project) RegisterWebhook(serveMux *http.ServeMux) {
 	if p.Webhook == nil {
 		return
 	}
 
-	p.Webhook.Register()
+	p.Webhook.Register(serveMux)
 }
 
 func (p *Project) PluginPath() (string, error) {
