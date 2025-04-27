@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/plaffitt/yggops/internal"
+	"github.com/plaffitt/yggops/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +19,9 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "yggops",
-		Short: "YggOps controller",
+		Use:     "yggops",
+		Short:   "YggOps controller",
+		Version: version.BuildVersion(),
 		Run: func(cmd *cobra.Command, args []string) {
 			config := internal.NewConfig(configPath, cmd.LocalFlags())
 			if err := config.Load(); err != nil {
@@ -34,11 +36,11 @@ func main() {
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", "/etc/yggops/config.yaml", "Configuration file path")
-	rootCmd.PersistentFlags().StringVar(&pluginsDir, "plugins", "/var/lib/yggops/plugins", "Plugins directory path")
-	rootCmd.PersistentFlags().StringVar(&repositoriesDir, "repositories", "/var/lib/yggops/repositories", "Repositories directory path")
-	rootCmd.Flags().StringVar(&listenAddr, "listen", ":3000", "Webhook listen address (<ip:port>)")
-	rootCmd.Flags().StringVar(&webhookSecrets, "webhook-secrets", "/etc/yggops/webhook-secrets", "Webhook secrets directory path")
+	rootCmd.PersistentFlags().StringVar(&configPath, "config", "/etc/yggops/config.yaml", "configuration file path")
+	rootCmd.PersistentFlags().StringVar(&pluginsDir, "plugins", "/var/lib/yggops/plugins", "plugins directory path")
+	rootCmd.PersistentFlags().StringVar(&repositoriesDir, "repositories", "/var/lib/yggops/repositories", "repositories directory path")
+	rootCmd.Flags().StringVar(&listenAddr, "listen", ":3000", "webhook listen address (<ip:port>)")
+	rootCmd.Flags().StringVar(&webhookSecrets, "webhook-secrets", "/etc/yggops/webhook-secrets", "webhook secrets directory path")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

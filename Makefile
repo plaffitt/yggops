@@ -5,8 +5,12 @@ GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get
 
-# Name of the binary
+# Build parameters
 BINARY_NAME = yggops
+PACKAGE = github.com/plaffitt/yggops
+LDFLAGS = -X '$(PACKAGE)/internal/version.Version=$(VERSION)' \
+          -X '$(PACKAGE)/internal/version.CommitHash=$(COMMIT_HASH)' \
+          -X '$(PACKAGE)/internal/version.BuildTime=$(BUILD_TIMESTAMP)'
  
 # Service configuration
 USER_NAME = root
@@ -17,7 +21,7 @@ SERVICE_PATH = /etc/systemd/system/$(SERVICE_NAME)
 all: build
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/main.go
+	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="$(LDFLAGS)" ./cmd/main.go
 
 docker-build:
 	docker build --build-arg BINARY_NAME=$(BINARY_NAME) . -t $(BINARY_NAME)
