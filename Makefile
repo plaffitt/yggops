@@ -7,10 +7,9 @@ GOGET = $(GOCMD) get
 
 # Build parameters
 BINARY_NAME = yggops
-PACKAGE = github.com/plaffitt/yggops
-LDFLAGS = -X '$(PACKAGE)/internal/version.Version=$(VERSION)' \
-          -X '$(PACKAGE)/internal/version.CommitHash=$(COMMIT_HASH)' \
-          -X '$(PACKAGE)/internal/version.BuildTime=$(BUILD_TIMESTAMP)'
+LDFLAGS = -X 'main.Version=$(VERSION)' \
+          -X 'main.CommitHash=$(COMMIT_HASH)' \
+          -X 'main.BuildTime=$(BUILD_TIMESTAMP)'
  
 # Service configuration
 USER_NAME = root
@@ -21,12 +20,7 @@ SERVICE_PATH = /etc/systemd/system/$(SERVICE_NAME)
 all: build
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="$(LDFLAGS)" ./cmd/main.go
-
-docker-build:
-	docker build --build-arg BINARY_NAME=$(BINARY_NAME) . -t $(BINARY_NAME)
-	docker run $(BINARY_NAME) cat $(BINARY_NAME) > $(BINARY_NAME)
-	chmod +x $(BINARY_NAME)
+	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="$(LDFLAGS)" ./cmd
 
 test:
 	$(GOTEST) -v ./...
@@ -44,9 +38,9 @@ uninstall_plugins:
 
 install: yggops install_plugins
 	mkdir -p /etc/$(BINARY_NAME)
-	if [ ! -f /etc/$(BINARY_NAME)/config.yaml ]; then install -m 0644 ./systemd/config.yaml /etc/$(BINARY_NAME)/config.yaml; fi
+	if [ ! -f /etc/$(BINARY_NAME)/config.yaml ]; then install -m 0644 ./packaging/config/config.yaml /etc/$(BINARY_NAME)/config.yaml; fi
 	install -m 0755 $(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
-	USER_NAME=$(USER_NAME) GROUP_NAME=$(GROUP_NAME) BINARY_NAME=$(BINARY_NAME) envsubst < ./systemd/$(SERVICE_NAME) | install -m 0644 /dev/stdin $(SERVICE_PATH)
+	install -m 0644 ./packaging/systemd/$(SERVICE_NAME) $(SERVICE_PATH)
 	systemctl daemon-reload
 	systemctl unmask $(SERVICE_NAME)
 	systemctl enable $(SERVICE_NAME)
@@ -59,4 +53,4 @@ uninstall:
 	rm -f $(SERVICE_PATH)
 	systemctl daemon-reload
 
-.PHONY: all build docker-build test clean run install_plugins uninstall_plugins install uninstall
+.PHONY: all build test clean run install_plugins uninstall_plugins install uninstall

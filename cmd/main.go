@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/plaffitt/yggops/internal"
-	"github.com/plaffitt/yggops/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +20,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:     "yggops",
 		Short:   "YggOps controller",
-		Version: version.BuildVersion(),
+		Version: buildVersion(),
 		Run: func(cmd *cobra.Command, args []string) {
 			config := internal.NewConfig(configPath, cmd.LocalFlags())
 			if err := config.Load(); err != nil {

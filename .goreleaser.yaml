@@ -1,0 +1,59 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - main: ./cmd
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "5"
+      - "6"
+      - "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - "-s -w -X main.Version={{ .Version }} -X main.CommitHash={{ .ShortCommit }} -X main.BuildTime={{ .Date }}"
+
+archives:
+  - formats: [binary]
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+
+changelog:
+  sort: asc
+  filters:
+    include:
+      - "^feat(\\([^)]+\\))?:"
+      - "^fix(\\([^)]+\\))?:"
+
+release:
+  github:
+    owner: plaffitt
+    name: yggops
+  prerelease: auto
+  name_template: "{{ .Version }}"
+
+nfpms:
+  - formats:
+      - deb
+    maintainer: Paul Laffitte <plaffitt@gmail.com>
+    description: A tool for integrating the GitOps (pull-based) philosophy with any existing tool
+    homepage: https://github.com/plaffitt/yggops
+    license: MIT
+    contents:
+      - src: packaging/systemd/yggops.service
+        dst: /etc/systemd/system/yggops.service
+      - src: packaging/config/config.yaml
+        dst: /usr/share/yggops/default_config.yaml
+      - src: plugins
+        dst: /var/lib/yggops/plugins
+    scripts:
+      preinstall: packaging/scripts/preinstall.sh
+      postinstall: packaging/scripts/postinstall.sh

@@ -1,4 +1,4 @@
-package version
+package main
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ var (
 	BuildTime  = ""
 )
 
-func BuildVersion() string {
+func buildVersion() string {
 	if Version == "" {
 		Version = "dev"
 	}

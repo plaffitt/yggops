@@ -12,10 +12,22 @@ Plugins are what allow you to deploy your code in various ways. They are idempot
 
 ## Installation
 
-For now, YggOps hasn't been released yet, so you will have to build it yourself. You will need to have [Go](https://go.dev/doc/install) installed on your machine as well as `make` (`sudo apt install make` should do it). To install YggOps on a remote host, clone this repository and run the following commands within it:
+### Debian / Ubuntu
+
+Go to the [latest](https://github.com/plaffitt/yggops/releases/latest) release and download the `.deb` package that match your system.
+
+### Others
+
+Go to the [latest](https://github.com/plaffitt/yggops/releases/latest) release and download the binary that match your system.
+
+You will also need to create a configuration file `/etc/yggops/config.yaml` and manually add plugins.
+
+### From source
+
+To install YggOps from source, you will need to have [Go](https://go.dev/doc/install) installed on your machine as well as `make` (`sudo apt install make` should do it). To install YggOps on a remote host, clone this repository and run the following commands within it:
 
 ```sh
-make build # or make docker-build if you don't have Go installed
+make build
 sudo make install
 ```
 
@@ -25,8 +37,7 @@ You're now ready to configure your YggOps instance. Take a look at the following
 
 ### SSH configuration
 
-
-In order to let YggOps clone git repositories over ssh, you will need to provide a private key using the `privateKeyPath` configuration option. Don't forget to set the correct permissions on the private key file and add the corresponding public key to your git repositories. You may want to use a dedicated key instead of your personnal one.
+In order to let YggOps clone git repositories over ssh, you will need to provide a private key using the `privateKeyPath` configuration option. Don't forget to set the correct permissions on the private key file and add the corresponding public key to your git repositories. You may want to use a dedicated key instead of your personal one.
 
 Read the following documentation to know how to add an ssh key to your git server:
 
