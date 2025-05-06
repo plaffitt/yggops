@@ -20,13 +20,13 @@ import (
 )
 
 type Project struct {
-	Name             string         `yaml:"name"`
-	Type             string         `yaml:"type"`
-	Repository       string         `yaml:"repository"`
-	Branch           string         `yaml:"branch"`
-	UpdateInterval   time.Duration  `yaml:"updateInterval"`
-	Webhook          *Webhook       `yaml:"webhook,omitempty"`
-	Options          map[string]any `yaml:"options"`
+	Name             string         `koanf:"name"`
+	Type             string         `koanf:"type"`
+	Repository       string         `koanf:"repository"`
+	Branch           string         `koanf:"branch"`
+	UpdateInterval   time.Duration  `koanf:"updateInterval"`
+	Webhook          *Webhook       `koanf:"webhook,omitempty"`
+	Options          map[string]any `koanf:"options"`
 	RepositoriesPath *string
 	PluginsPath      *string
 	Auth             transport.AuthMethod

@@ -16,10 +16,10 @@ const (
 )
 
 type Webhook struct {
-	Provider         WebhookProvider `yaml:"provider"`
-	Secret           string          `yaml:"secret"`
-	GetSecretCommand string          `yaml:"getSecretCommand"`
-	Events           []string        `yaml:"events"`
+	Provider         WebhookProvider `koanf:"provider"`
+	Secret           string          `koanf:"secret"`
+	GetSecretCommand string          `koanf:"getSecretCommand"`
+	Events           []string        `koanf:"events"`
 
 	project *Project
 	handler webhooks.Handler
