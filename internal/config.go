@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -28,14 +29,18 @@ type Config struct {
 	RepositoriesPath   string        `koanf:"repositories"`
 	PluginsPath        string        `koanf:"plugins"`
 
+	configPath   string
 	fileProvider *file.File
 	flags        *pflag.FlagSet
+	reloadMutex  *sync.Mutex
 }
 
 func NewConfig(configPath string, flags *pflag.FlagSet) *Config {
 	return &Config{
+		configPath:   configPath,
 		fileProvider: file.Provider(configPath),
 		flags:        flags,
+		reloadMutex:  &sync.Mutex{},
 	}
 }
 
@@ -70,17 +75,64 @@ func (c *Config) Load() error {
 }
 
 func (c *Config) Watch(callback func()) {
-	c.fileProvider.Watch(func(event any, err error) {
+	if err := c.watch(callback); err != nil {
+		log.Printf("could not watch configuration: %s", err.Error())
+	}
+}
+
+func (c *Config) watch(callback func()) error {
+	return c.fileProvider.Watch(func(event any, err error) {
 		if err != nil {
-			log.Fatalf("error while watching configuration: %s", err.Error())
+			// koanf stops watching on any error, e.g. when the file is replaced
+			// (unlink then create), so the watch must be re-established.
+			log.Printf("error while watching configuration: %s", err.Error())
+			go c.rewatch(callback)
+			return
 		}
 
-		if err := c.Load(); err != nil {
-			log.Fatalf("error while reloading configuration: %s", err.Error())
-		}
-
-		callback()
+		c.reload(callback)
 	})
+}
+
+// rewatch waits for the configuration file to be back, watches it again and
+// reloads it since changes may have been missed in the meantime.
+func (c *Config) rewatch(callback func()) {
+	for delay := 100 * time.Millisecond; ; delay = min(delay*2, 10*time.Second) {
+		time.Sleep(delay)
+
+		// The previous provider closes its watcher asynchronously, so it cannot
+		// be safely reused.
+		c.reloadMutex.Lock()
+		c.fileProvider = file.Provider(c.configPath)
+		err := c.watch(callback)
+		c.reloadMutex.Unlock()
+		if err == nil {
+			break
+		}
+	}
+
+	c.reload(callback)
+}
+
+// reload loads the configuration and calls callback on success. On failure,
+// the previous configuration is kept.
+func (c *Config) reload(callback func()) {
+	c.reloadMutex.Lock()
+	defer c.reloadMutex.Unlock()
+
+	next := &Config{
+		configPath:   c.configPath,
+		fileProvider: c.fileProvider,
+		flags:        c.flags,
+		reloadMutex:  c.reloadMutex,
+	}
+	if err := next.Load(); err != nil {
+		log.Printf("error while reloading configuration, keeping the previous one: %s", err.Error())
+		return
+	}
+
+	*c = *next
+	callback()
 }
 
 func (c *Config) getAuthMethod() (auth transport.AuthMethod, err error) {
